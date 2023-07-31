@@ -1,0 +1,7 @@
+Pillow==9.5.0
+selenium==4.9.1
+imutils~=0.5.4
+opencv-python==4.7.0.72
+numpy==1.24.3
+scikit-image==0.20.0
+#lxml==4.9.2
