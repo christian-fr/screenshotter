@@ -2,8 +2,7 @@ import datetime
 from pathlib import Path
 import os
 from typing import List, Tuple
-import PIL
-from PIL import Image, ImageChops, ImageDraw, ImageColor
+from PIL import Image, ImageChops, ImageDraw, ImageOps
 import unicodedata
 import re
 
@@ -66,34 +65,38 @@ def check_for_files(output_path: Path) -> None:
                 [os.remove(entry) for entry in list_of_files]
 
 
-def add_str_to_image(file: Path, text: str, str_color: str, location: str, size: int = 18):
+def add_str_to_image(file: Path, text: str, color: str, location: str, size: int = 18, rotate: int = 0,
+                     margin: int = 5):
+    assert rotate in [0, 90, 180, 270]
     assert location in ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
-    color = ImageColor.getcolor(str_color, "RGB")
     font = ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", 16)
+
     image = Image.open(file)
     draw = ImageDraw.Draw(image)
 
-    text_width, text_height = font.getsize(text)
+    txt = Image.new('L', font.getsize(text))
+    d = ImageDraw.Draw(txt)
+    d.text((0, 0), text, font=font, fill=255)
+    w = txt.rotate(rotate, expand=True)
+    text_width, text_height = w.size
 
-    x, y = None, None
     im_width, im_height = image.size
     if 'w' in location:
-        x = 5
+        x = margin
     elif 'e' in location:
-        x = im_width - text_width - 5
+        x = im_width - text_width - margin
     else:
         x = int(round(im_width / 2)) - int(round(text_width / 2))
 
     if 'n' in location:
-        y = 5
+        y = margin
     elif 's' in location:
-        y = im_height - text_height - 5
+        y = im_height - text_height - margin
     else:
-        y = int(round(im_height/2))
+        y = int(round(im_height / 2)) - int(round(text_height / 2))
 
-    draw.text((x, y), text, color, font=font)
+    image.paste(ImageOps.colorize(w, "black", color), (x, y), w)
     image.save(file)
-    pass
 
 
 def prepare_images(zipped_files_list: List[Tuple[Path, Path]], output_path: Path, trim_result: bool = True) -> List[

@@ -176,7 +176,7 @@ class Screenshotter:
                 trim_image(Path(out_file), Path(self.output_path, 'cropped', filename))
 
         if self.flag_add_filename:
-            add_str_to_image(out_file, os.path.splitext(filename)[0], "darkred", 'n')
+            add_str_to_image(out_file, os.path.splitext(filename)[0], "darkred", 'n', 16, 0)
 
     def register_screenshot(self, file: Path, lang: str):
         if lang not in self.screenshot_files:
