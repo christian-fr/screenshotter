@@ -1,18 +1,25 @@
 import os
 import re
 import time
+import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Dict, Optional, Union, Callable, Any, Tuple
 from itertools import product
+
+from dotenv import load_dotenv
 from selenium import webdriver
+from selenium.common import ElementClickInterceptedException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.common.by import By
-from scrnshtr.util import trim_image, prepare_images
+from scrnshtr.util import trim_image, prepare_images, add_str_to_image
 
+if os.environ.get('CHROMEDRIVER') is None:
+    assert load_dotenv(Path('.', '.env'))
 CHROMEDRIVER = os.environ.get('CHROMEDRIVER')
+
 GECKODRIVER = os.environ.get('GECKODRIVER')
 
 
@@ -38,7 +45,9 @@ class Screenshotter:
     flag_end_when_done: bool = True
     flag_trim_image: bool = True
     flag_trim_in_place: bool = False
+    flag_add_filename: bool = False
     flag_headless: bool = True
+    flag_expand_accordion: bool = True
     language_suffix: str = 'de'
     url_protocol: str = 'http://'
     suffix_url: str = '.html'
@@ -129,8 +138,13 @@ class Screenshotter:
                             if self.before_screenshot:
                                 self.before_screenshot(self.driver, page, self.output_path, self.before_screenshot_args,
                                                        lang)
+                                if self.flag_expand_accordion:
+                                    self.expand_accordion()
                             self.make_screenshot(page, width, height, lang)
                 self.driver.get(self.logout_url())
+        except Exception:
+            traceback.print_exc()
+
         finally:
             self.driver.get(self.logout_url())
             self.driver.quit()
@@ -160,6 +174,9 @@ class Screenshotter:
             else:
                 Path(self.output_path, 'cropped').mkdir(exist_ok=True)
                 trim_image(Path(out_file), Path(self.output_path, 'cropped', filename))
+
+        if self.flag_add_filename:
+            add_str_to_image(out_file, os.path.splitext(filename)[0], "darkred", 'n')
 
     def register_screenshot(self, file: Path, lang: str):
         if lang not in self.screenshot_files:
@@ -206,3 +223,23 @@ class Screenshotter:
                                  trim_result=trim_result)
         # prepare_images(zipped_files_list=tuples_list,
         #                output_path=Path(self.output_path.parent, timestamp() + '_compare'), trim_result=trim_result)
+
+    def expand_accordion(self):
+        accordion_elements = self.driver.find_elements(By.CSS_SELECTOR, '.containerAcc')
+        if accordion_elements:
+            runs = len(accordion_elements)
+            for i in range(runs):
+                all_elements = self.driver.find_elements(By.CSS_SELECTOR, '.containerAcc')
+                if i > len(all_elements)-1:
+                    break
+                element = all_elements[i]
+                countdown = 10
+                while countdown > 0:
+                    time.sleep(.3)
+                    try:
+                        element.click()
+                        break
+                    except ElementClickInterceptedException:
+                        traceback.print_exc()
+                    finally:
+                        countdown -= 1

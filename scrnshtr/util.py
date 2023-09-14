@@ -3,9 +3,11 @@ from pathlib import Path
 import os
 from typing import List, Tuple
 import PIL
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageDraw, ImageColor
 import unicodedata
 import re
+
+from PIL import ImageFont
 
 
 def flatten(ll: list) -> list:
@@ -62,6 +64,36 @@ def check_for_files(output_path: Path) -> None:
             choice = input('delete those files? ([y/n]')
             if choice.strip() in ['y', 'Y']:
                 [os.remove(entry) for entry in list_of_files]
+
+
+def add_str_to_image(file: Path, text: str, str_color: str, location: str, size: int = 18):
+    assert location in ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
+    color = ImageColor.getcolor(str_color, "RGB")
+    font = ImageFont.truetype(r"C:\Windows\Fonts\arialbd.ttf", 16)
+    image = Image.open(file)
+    draw = ImageDraw.Draw(image)
+
+    text_width, text_height = font.getsize(text)
+
+    x, y = None, None
+    im_width, im_height = image.size
+    if 'w' in location:
+        x = 5
+    elif 'e' in location:
+        x = im_width - text_width - 5
+    else:
+        x = int(round(im_width / 2)) - int(round(text_width / 2))
+
+    if 'n' in location:
+        y = 5
+    elif 's' in location:
+        y = im_height - text_height - 5
+    else:
+        y = int(round(im_height/2))
+
+    draw.text((x, y), text, color, font=font)
+    image.save(file)
+    pass
 
 
 def prepare_images(zipped_files_list: List[Tuple[Path, Path]], output_path: Path, trim_result: bool = True) -> List[
